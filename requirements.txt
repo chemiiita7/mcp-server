@@ -1,4 +1,8 @@
-mcp>=1.3.0,<2   # mcp 2.x renombra FastMCP y cambia la API
-fastmcp
-pydantic
-uvicorn
+# Versiones fijadas a propósito: con despliegue continuo, cada push reconstruye la
+# imagen en el VPS y un "mcp" sin fijar ya se llevó por delante el servidor una vez
+# (mcp 2.x renombra FastMCP a MCPServer). Para subir una versión: cámbiala aquí,
+# empuja, y si el job de tests pasa es que el servidor sigue cargando.
+mcp==1.30.0
+fastmcp==3.4.11
+pydantic==2.14.3
+uvicorn==0.54.0

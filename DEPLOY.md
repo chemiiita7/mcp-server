@@ -83,6 +83,18 @@ Comprobarlo a mano antes de confiar en Actions:
 A partir de ahí, **Actions → Test y deploy al VPS → Run workflow** (o cualquier push
 a `main`) hace lo mismo solo.
 
+## Cosas sabidas
+
+- **Las versiones de `requirements.txt` están fijadas.** Con despliegue continuo cada
+  push reconstruye la imagen, y dependencias flotantes significan que un día cualquiera
+  el servidor se levanta con una versión mayor distinta. Ya pasó con `mcp` 2.x. Para
+  actualizar: cambia la versión, empuja y mira el job de tests.
+- **`MCP_HOST` no hace nada.** `server.py` lo pasa por la variable `FASTMCP_HOST`, que
+  mcp 1.30 ignora, así que el servidor siempre escucha en `127.0.0.1:8000` pase lo que
+  pase en la configuración. No molesta porque quien lo expone es el túnel de Cloudflare,
+  pero el día que haga falta alcanzarlo por el tailnet hay que pasarle el host al
+  constructor: `FastMCP(nombre, host=..., port=...)`.
+
 ## Si algo falla
 
 | Síntoma en Actions | Causa probable |
