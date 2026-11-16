@@ -106,6 +106,25 @@ a `main`) hace lo mismo solo.
   escuchaba siempre en `127.0.0.1` dijera lo que dijera la configuración. Ahora el host
   va al constructor de `FastMCP` y `scripts/smoke_test.py` lo comprueba en cada push.
 
+## Pendiente: migrar al despachador
+
+La clave de `VPS_SSH_KEY` tiene hoy el comando forzado apuntando a la ruta fija de este
+repositorio. Funciona, pero significa que **cualquier otro repo que use el mismo secreto
+de organización acabaría ejecutando este `deploy.sh`** en vez del suyo, y daría verde.
+La plantilla [vps-didac/plantilla-vps](https://github.com/vps-didac/plantilla-vps) trae
+el despachador que enruta por nombre de repositorio. En este orden:
+
+1. Instalar el despachador, desde un clon de la plantilla:
+   `install -m 755 vps/dispatcher.sh /home/ubuntu/bin/deploy.sh`
+2. Que lo encuentre aquí, que no está en `apps/projects`:
+   `ln -s /home/ubuntu/apps/lab-ai/mcp-server /home/ubuntu/apps/projects/mcp-server`
+3. En `~/.ssh/authorized_keys`, cambiar la entrada `github-actions` de
+   `command="bash /home/ubuntu/apps/lab-ai/mcp-server/deploy.sh"` a
+   `from="100.64.0.0/10",command="/home/ubuntu/bin/deploy.sh"`.
+4. **Solo después de lo anterior**, quitar de `deploy.sh` el `git fetch`/`reset` y el
+   envoltorio `{ }`: pasa a hacerlo el despachador, y con ello desaparece el retardo de
+   un despliegue. Hacerlo antes dejaría los despliegues sin traer código nuevo.
+
 ## Si algo falla
 
 | Síntoma en Actions | Causa probable |
