@@ -1,0 +1,7 @@
+{
+  "_comment": "Qué módulos de tools/ carga cada perfil. '*' = todos. El perfil se elige con MCP_PROFILE.",
+  "profiles": {
+    "admin": ["*"],
+    "agent": ["obsidian", "health_db"]
+  }
+}

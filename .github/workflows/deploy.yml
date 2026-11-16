@@ -1,0 +1,99 @@
+name: Test y deploy al VPS
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:        # botón para desplegar a mano desde GitHub
+
+concurrency: deploy-${{ github.repository }}-${{ github.ref }}
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: El servidor carga y la imagen construye
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      - name: Todos los módulos de tools/ cargan
+        run: python scripts/smoke_test.py
+
+      - name: La imagen construye y el servidor escucha
+        run: |
+          docker build -t mcp-lab-server:ci .
+          docker run -d --name mcp-ci --network host \
+            -e MCP_DB_PATH=/tmp/ci.db -e MCP_VAULT_PATH=/tmp/vault \
+            mcp-lab-server:ci
+          for i in $(seq 1 30); do
+            # Cualquier respuesta HTTP vale: /mcp sin sesión contesta 4xx, pero
+            # significa que el servidor arrancó. 000 = ni siquiera conecta.
+            code="$(curl -s -o /dev/null -m 5 -w '%{http_code}' http://127.0.0.1:8000/mcp || true)"
+            if [ "$code" != "000" ]; then
+              echo "El servidor responde en :8000/mcp (HTTP $code)"
+              docker rm -f mcp-ci >/dev/null
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "::error::El servidor no respondió en :8000 tras 30 s"
+          docker logs mcp-ci
+          exit 1
+
+  deploy:
+    name: Desplegar en el VPS
+    needs: test             # si los tests fallan, no se despliega
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Unirse a Tailscale
+        uses: tailscale/github-action@v4
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
+
+      - name: Preparar SSH
+        env:
+          SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
+
+      # La clave tiene comando forzado en el VPS: solo acepta el nombre del repo
+      # y el script de allí hace git pull + docker compose up -d --build (ver DEPLOY.md).
+      - name: Desplegar
+        env:
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+        run: ssh -p 2222 -o BatchMode=yes -o ConnectTimeout=20 "$VPS_USER@$VPS_HOST" "${{ github.event.repository.name }}"
+
+      # Informativo: si el tailnet no deja al runner llegar al 8000, no tumba el deploy.
+      - name: Comprobar que el MCP responde
+        continue-on-error: true
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+        run: |
+          for i in $(seq 1 20); do
+            code="$(curl -s -o /dev/null -m 5 -w '%{http_code}' "http://$VPS_HOST:8000/mcp" || true)"
+            if [ "$code" != "000" ]; then
+              echo "MCP en pie: el puerto 8000 del VPS responde (HTTP $code)." >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+            sleep 3
+          done
+          echo "No se pudo contactar con el puerto 8000 del VPS desde el runner." >> "$GITHUB_STEP_SUMMARY"
+          exit 1

@@ -1,0 +1,4 @@
+mcp>=1.3.0,<2   # mcp 2.x renombra FastMCP y cambia la API
+fastmcp
+pydantic
+uvicorn

@@ -1,0 +1,16 @@
+.git
+.github
+.gitignore
+.dockerignore
+.env
+.env.example
+README.md
+DEPLOY.md
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+data/
+vault/
+*.db

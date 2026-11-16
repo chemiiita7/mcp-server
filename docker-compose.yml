@@ -1,0 +1,22 @@
+services:
+  mcp-lab-server:
+    build: .
+    container_name: mcp-lab-server
+    user: "1000:1000"
+    mem_limit: 256m
+    network_mode: host
+    restart: unless-stopped
+    environment:
+      MCP_PROFILE: admin
+      MCP_PORT: "8000"
+      MCP_TRANSPORT: streamable-http
+      DOCKER_HOST: "tcp://127.9.9.1:2375"
+      MC_CONTAINER: "minecraft-server"
+      # Se lee del archivo .env que vive junto a este compose EN EL VPS (ver .env.example).
+      # Nunca se escribe aquí: este repositorio es público.
+      MC_RCON_PASSWORD: ${MC_RCON_PASSWORD:?falta MC_RCON_PASSWORD en el .env junto al docker-compose.yml}
+    volumes:
+      - ./:/app                                          # código en caliente
+      - /home/ubuntu/apps/lab-ai/obsidian-vault:/vault
+      - /home/ubuntu/apps/lab-ai/data:/data
+      - /home/ubuntu/apps/minecraft:/minecraft
