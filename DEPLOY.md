@@ -8,7 +8,8 @@ Cada push a `main` lanza [`.github/workflows/deploy.yml`](.github/workflows/depl
 2. **deploy** — solo si lo anterior está en verde y no es un pull request: entra en el
    tailnet con la acción de Tailscale (`tag:ci`), monta la clave SSH y ejecuta
    `ssh -p 2222 $VPS_USER@$VPS_HOST "mcp-server"`.
-3. Una comprobación final, informativa, mira si el puerto 8000 del VPS responde.
+3. El propio `deploy.sh` comprueba al final que el MCP responde en `127.0.0.1:8000`
+   y devuelve error si no, así que un despliegue en verde significa servidor vivo.
 
 ## Cómo llega el push al contenedor
 
@@ -21,8 +22,8 @@ no da shell, solo acepta el nombre de un repositorio y lo traduce a un script.
 ```
 
 Ese script es [`deploy.sh`](deploy.sh), que viaja **dentro de este repositorio**: trae
-`origin/main`, hace `docker compose up -d --build` y deja los logs del arranque en la
-salida del job de Actions. Es decir, el propio repo decide cómo se despliega, y para
+`origin/main`, hace `docker compose up -d --build`, comprueba que el MCP responde y
+deja los logs del arranque en la salida del job de Actions. Es decir, el propio repo decide cómo se despliega, y para
 cambiarlo basta con editar `deploy.sh` y empujar.
 
 `up -d --build` sirve para los dos casos: si solo cambió un `.py` de `tools/`, las capas

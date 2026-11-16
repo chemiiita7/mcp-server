@@ -28,9 +28,24 @@
   docker compose up -d --build
   docker compose ps
 
+  echo "==> Comprobando que responde"
+  code=000
+  for _ in $(seq 1 20); do
+    # 406 es lo normal: streamable-http rechaza un GET pelado, pero significa
+    # que el servidor está vivo. 000 es que ni siquiera conecta.
+    code="$(curl -s -o /dev/null -m 5 -w '%{http_code}' http://127.0.0.1:8000/mcp || true)"
+    [ "$code" != "000" ] && break
+    sleep 2
+  done
+
   echo "==> Logs del arranque"
-  sleep 4
   docker compose logs --tail 25 mcp-lab-server
+
+  if [ "$code" = "000" ]; then
+    echo "ERROR: el servidor no responde en 127.0.0.1:8000 tras el despliegue." >&2
+    exit 1
+  fi
+  echo "OK: el MCP responde (HTTP $code)."
 
   exit 0
 }

@@ -80,20 +80,3 @@ jobs:
           VPS_USER: ${{ secrets.VPS_USER }}
           VPS_HOST: ${{ secrets.VPS_HOST }}
         run: ssh -p 2222 -o BatchMode=yes -o ConnectTimeout=20 "$VPS_USER@$VPS_HOST" "${{ github.event.repository.name }}"
-
-      # Informativo: si el tailnet no deja al runner llegar al 8000, no tumba el deploy.
-      - name: Comprobar que el MCP responde
-        continue-on-error: true
-        env:
-          VPS_HOST: ${{ secrets.VPS_HOST }}
-        run: |
-          for i in $(seq 1 20); do
-            code="$(curl -s -o /dev/null -m 5 -w '%{http_code}' "http://$VPS_HOST:8000/mcp" || true)"
-            if [ "$code" != "000" ]; then
-              echo "MCP en pie: el puerto 8000 del VPS responde (HTTP $code)." >> "$GITHUB_STEP_SUMMARY"
-              exit 0
-            fi
-            sleep 3
-          done
-          echo "No se pudo contactar con el puerto 8000 del VPS desde el runner." >> "$GITHUB_STEP_SUMMARY"
-          exit 1
