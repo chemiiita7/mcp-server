@@ -40,7 +40,7 @@ de la imagen se reutilizan y el contenedor se reinicia en segundos; si cambió
 
 > La organización está en plan Free: los secretos de organización **solo los leen
 > repositorios públicos**. Por eso este repo es público y por eso no hay ni una
-> credencial en el código (ver `.env.example`).
+> credencial en el código (ver `secrets.env.example`).
 
 ## Puesta en marcha en el VPS (una sola vez)
 
@@ -57,15 +57,22 @@ git fetch origin
 git reset --hard origin/main                        # sobrescribe con lo del repo
 ```
 
-Y crear el `.env` con la contraseña RCON, que ya no está en `docker-compose.yml`
-(este repo es público). No se sube nunca y el deploy no lo toca, porque
-`git reset --hard` no borra archivos sin seguimiento:
+Y crear el `secrets.env` con la contraseña RCON, que ya no está en
+`docker-compose.yml` (este repo es público). No se sube nunca y el deploy no lo toca,
+porque `git reset --hard` no borra archivos sin seguimiento:
 
 ```bash
-cp .env.example .env
-nano .env          # MC_RCON_PASSWORD=la-de-siempre
-chmod 600 .env
+cp secrets.env.example secrets.env
+nano secrets.env          # MC_RCON_PASSWORD=la-de-siempre
+chmod 600 secrets.env
 ```
+
+> **Por qué `secrets.env` y no `.env`.** El contenedor monta `./:/app`, y fastmcp
+> auto-parsea cualquier `/app/.env` al arrancar. Además corre como `user: "1000:1000"`
+> mientras que el usuario del VPS es uid **1001**, así que un `.env` con permisos 600
+> es ilegible desde dentro y el servidor muere con `PermissionError` en bucle. Con
+> `env_file: secrets.env` lo lee docker compose en el host y al contenedor solo le
+> llegan las variables.
 
 Comprobarlo a mano antes de confiar en Actions:
 
@@ -81,7 +88,7 @@ a `main`) hace lo mismo solo.
 | Síntoma en Actions | Causa probable |
 |---|---|
 | `deploy.sh: No such file or directory` | Falta la puesta en marcha de arriba: el directorio del VPS aún no es un clon |
-| `ERROR: falta el archivo .env` | Falta el `.env` junto al `docker-compose.yml` del VPS |
+| `ERROR: falta secrets.env` | Falta el `secrets.env` junto al `docker-compose.yml` del VPS |
 | El paso de Tailscale falla | El cliente OAuth no tiene permiso sobre `tag:ci` en la ACL del tailnet |
 | `Host key verification failed` | `VPS_KNOWN_HOSTS` no cubre el puerto 2222 (`ssh-keyscan -p 2222 <host>`) |
 | `Permission denied (publickey)` | La pública de `VPS_SSH_KEY` no está en el `authorized_keys` del VPS |

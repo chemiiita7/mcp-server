@@ -12,9 +12,10 @@ services:
       MCP_TRANSPORT: streamable-http
       DOCKER_HOST: "tcp://127.9.9.1:2375"
       MC_CONTAINER: "minecraft-server"
-      # Se lee del archivo .env que vive junto a este compose EN EL VPS (ver .env.example).
-      # Nunca se escribe aquí: este repositorio es público.
-      MC_RCON_PASSWORD: ${MC_RCON_PASSWORD:?falta MC_RCON_PASSWORD en el .env junto al docker-compose.yml}
+    # Secretos: archivo sin seguimiento junto a este compose en el VPS.
+    # Lo lee docker compose en el host, el contenedor solo recibe las variables.
+    env_file:
+      - secrets.env
     volumes:
       - ./:/app                                          # código en caliente
       - /home/ubuntu/apps/lab-ai/obsidian-vault:/vault

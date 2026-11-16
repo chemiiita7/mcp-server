@@ -14,14 +14,14 @@
   cd "$(dirname "$(readlink -f "$0")")"
   echo "==> $(pwd)"
 
-  if [ ! -f .env ]; then
-    echo "ERROR: falta el archivo .env. Cópialo de .env.example y pon MC_RCON_PASSWORD." >&2
+  if [ ! -f secrets.env ]; then
+    echo "ERROR: falta secrets.env. Cópialo de secrets.env.example y pon MC_RCON_PASSWORD." >&2
     exit 1
   fi
 
   echo "==> Trayendo main desde origin"
   git fetch --prune origin
-  git reset --hard origin/main          # nunca 'git clean': borraría el .env
+  git reset --hard origin/main          # nunca 'git clean': borraría secrets.env
   git --no-pager log --oneline -1
 
   echo "==> docker compose up -d --build"

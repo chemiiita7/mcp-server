@@ -3,7 +3,8 @@
 .gitignore
 .dockerignore
 .env
-.env.example
+secrets.env
+secrets.env.example
 README.md
 DEPLOY.md
 __pycache__/

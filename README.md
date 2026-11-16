@@ -20,7 +20,7 @@ mcp-server/
 ├── permissions.json     # qué módulos ve cada perfil (admin = todo, agent = lista blanca)
 ├── Dockerfile
 ├── docker-compose.yml   # monta ./:/app → editar código = reiniciar, sin build
-├── .env.example         # copiar a .env EN EL VPS (contraseña RCON); .env nunca se sube
+├── secrets.env.example  # copiar a secrets.env EN EL VPS (contraseña RCON); nunca se sube
 └── requirements.txt     # mcp fijado a <2 (mcp 2.x renombra FastMCP)
 ```
 
@@ -55,8 +55,10 @@ sigue en verde con sus herramientas.
 
 Este repositorio es **público** (lo exige el plan Free de la organización para poder
 usar sus secretos de Actions). No se escribe ninguna credencial en el código:
-`MC_RCON_PASSWORD` vive en un `.env` junto al `docker-compose.yml` del VPS, que está
-en `.gitignore` y que el despliegue no toca.
+`MC_RCON_PASSWORD` vive en un `secrets.env` junto al `docker-compose.yml` del VPS, que
+está en `.gitignore` y que el despliegue no toca. No puede llamarse `.env`: el
+contenedor monta `./:/app`, fastmcp auto-parsea cualquier `/app/.env` y encima corre
+como uid 1000 mientras que el usuario del VPS es el 1001.
 
 ## Perfil "agent" (Capa 1, puerto 8001) — cuando toque
 

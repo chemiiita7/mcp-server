@@ -1,4 +1,5 @@
 # Secretos y configuración local: viven solo en el VPS
+secrets.env
 .env
 
 # Datos y montajes (en el VPS son volúmenes, nunca contenido del repo)
