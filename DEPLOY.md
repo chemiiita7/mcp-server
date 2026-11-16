@@ -94,11 +94,17 @@ a `main`) hace lo mismo solo.
   ejecutando es el de antes del `git reset`: bash lee el bloque `{ }` entero al
   principio. El push deja la versión nueva en disco y es el despliegue *siguiente* el
   que la usa. Si tienes prisa, ejecútalo a mano en el VPS una vez.
-- **`MCP_HOST` no hace nada.** `server.py` lo pasa por la variable `FASTMCP_HOST`, que
-  mcp 1.30 ignora, así que el servidor siempre escucha en `127.0.0.1:8000` pase lo que
-  pase en la configuración. No molesta porque quien lo expone es el túnel de Cloudflare,
-  pero el día que haga falta alcanzarlo por el tailnet hay que pasarle el host al
-  constructor: `FastMCP(nombre, host=..., port=...)`.
+- **El MCP no tiene autenticación y escucha en `0.0.0.0:8000`.** Lo único que lo
+  protege es el cortafuegos del VPS: `ts-input` acepta todo lo que entra por
+  `tailscale0`, hay reglas para el 22 y el 25565, y el resto cae en
+  `REJECT --reject-with icmp-host-prohibited`. Es decir, alcanzable desde el tailnet y
+  desde localhost (túnel de Cloudflare), no desde fuera. Si algún día se tocan esas
+  reglas de iptables, el perfil `admin` queda expuesto entero. Para encerrarlo otra vez:
+  `MCP_HOST: "127.0.0.1"` en el `docker-compose.yml`.
+- **`MCP_HOST` se ignoraba en silencio hasta noviembre de 2026.** `server.py` lo pasaba
+  por la variable `FASTMCP_HOST`, que mcp 1.30 dejó de leer, así que el servidor
+  escuchaba siempre en `127.0.0.1` dijera lo que dijera la configuración. Ahora el host
+  va al constructor de `FastMCP` y `scripts/smoke_test.py` lo comprueba en cada push.
 
 ## Si algo falla
 

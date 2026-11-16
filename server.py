@@ -16,7 +16,9 @@ import os
 
 from core.config import settings
 
-# Mantener la corrección de compatibilidad: FastMCP lee host/puerto del entorno.
+# Cinturón y tirantes: las versiones viejas de FastMCP leían host/puerto de aquí.
+# Desde mcp 1.30 esto se ignora, así que lo de verdad es pasárselo al constructor
+# (ver _nuevo_servidor); se deja porque no estorba y cubre versiones antiguas.
 os.environ["FASTMCP_HOST"] = settings.host
 os.environ["FASTMCP_PORT"] = str(settings.port)
 
@@ -38,8 +40,26 @@ logging.basicConfig(
 log = logging.getLogger("server")
 
 
+def _nuevo_servidor() -> FastMCP:
+    """Construye el FastMCP pasándole host y puerto explícitamente.
+
+    mcp 1.30 ignora FASTMCP_HOST, así que sin esto el servidor escucha siempre en
+    127.0.0.1 y MCP_HOST no sirve de nada. El SDK oficial acepta host/port como
+    settings del constructor; si alguna versión no los acepta, se cae al
+    comportamiento de antes en vez de reventar.
+    """
+    try:
+        return FastMCP(settings.server_name, host=settings.host, port=settings.port)
+    except TypeError:
+        log.warning(
+            "Esta versión de FastMCP no acepta host/port en el constructor: "
+            "el servidor puede ignorar MCP_HOST=%s", settings.host,
+        )
+        return FastMCP(settings.server_name)
+
+
 def build_server() -> FastMCP:
-    mcp = FastMCP(settings.server_name)
+    mcp = _nuevo_servidor()
     db.init_schema()
     report = load_tools(mcp, profile=settings.profile)
     log.info("Perfil '%s' | módulos cargados: %s", settings.profile, report["loaded"] or "-")
@@ -52,7 +72,10 @@ def build_server() -> FastMCP:
 
 def main() -> None:
     mcp = build_server()
-    log.info("Arrancando en %s:%s (%s)", settings.host, settings.port, settings.transport)
+    efectivo = getattr(getattr(mcp, "settings", None), "host", settings.host)
+    log.info("Arrancando en %s:%s (%s)", efectivo, settings.port, settings.transport)
+    if efectivo != settings.host:
+        log.warning("MCP_HOST pide %s pero el servidor escuchará en %s", settings.host, efectivo)
     try:
         # fastmcp v2 acepta host/port como argumentos
         mcp.run(transport=settings.transport, host=settings.host, port=settings.port)

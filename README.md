@@ -49,10 +49,9 @@ En CI, en cambio, un módulo roto **hace fallar el build y no se despliega**.
 | Ver qué cargó | en el VPS: `docker compose logs --tail 20 mcp-lab-server` |
 
 Tras un despliegue, comprobar en Antigravity que el MCP sigue en verde con sus
-herramientas. El servidor escucha en `127.0.0.1:8000` dentro del VPS y se expone por
-el túnel de Cloudflare; **`MCP_HOST` no sirve para cambiarlo**: desde mcp 1.30 la
-variable `FASTMCP_HOST` que usa `server.py` ya no se respeta y el host hay que
-pasárselo al constructor de `FastMCP`.
+herramientas. El servidor escucha en `0.0.0.0:8000` (`MCP_HOST` en el
+`docker-compose.yml`), que con el cortafuegos del VPS significa localhost y tailnet:
+vale tanto el túnel de Cloudflare como `http://<IP-tailnet-del-VPS>:8000/mcp` directo.
 
 ## Secretos
 
