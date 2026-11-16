@@ -90,6 +90,10 @@ a `main`) hace lo mismo solo.
   push reconstruye la imagen, y dependencias flotantes significan que un día cualquiera
   el servidor se levanta con una versión mayor distinta. Ya pasó con `mcp` 2.x. Para
   actualizar: cambia la versión, empuja y mira el job de tests.
+- **Cambiar `deploy.sh` tarda un despliegue en surtir efecto.** El script que se está
+  ejecutando es el de antes del `git reset`: bash lee el bloque `{ }` entero al
+  principio. El push deja la versión nueva en disco y es el despliegue *siguiente* el
+  que la usa. Si tienes prisa, ejecútalo a mano en el VPS una vez.
 - **`MCP_HOST` no hace nada.** `server.py` lo pasa por la variable `FASTMCP_HOST`, que
   mcp 1.30 ignora, así que el servidor siempre escucha en `127.0.0.1:8000` pase lo que
   pase en la configuración. No molesta porque quien lo expone es el túnel de Cloudflare,
