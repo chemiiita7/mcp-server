@@ -1,6 +1,6 @@
 """Comprobación de humo para CI: el servidor arranca y todos los módulos cargan.
 
-Construye el servidor MCP completo (configuración + esquema SQLite + carga de tools/)
+Construye el servidor MCP completo (configuración + carga de tools/)
 sobre directorios temporales, sin abrir ningún puerto. Si un módulo de tools/ está
 roto, el cargador lo apunta en report["failed"] y aquí falla el build, así que un
 .py mal escrito nunca llega al VPS.
@@ -33,7 +33,6 @@ def main() -> int:
 
     from core.config import settings
     from core.loader import discover, load_tools
-    from core import db
     from server import build_server
 
     descubiertos = [n.removeprefix("tools.") for n in discover()]
@@ -41,9 +40,6 @@ def main() -> int:
     if not descubiertos:
         print("ERROR: el cargador no ha encontrado ningún módulo en tools/")
         return 1
-
-    db.init_schema()
-    print(f"esquema SQLite creado en {settings.db_path}")
 
     try:
         from mcp.server.fastmcp import FastMCP
