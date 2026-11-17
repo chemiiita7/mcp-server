@@ -8,7 +8,7 @@ mcp-server/
 ├── server.py            # genérico: config → BD → carga tools/ → run. No se toca.
 ├── core/
 │   ├── config.py        # variables MCP_* (puerto, rutas, perfil...)
-│   ├── db.py            # esquema SQLite + conexiones (solo lectura por defecto)
+│   ├── db.py            # conexiones SQLite, solo lectura (el esquema es de vps-didac/ingesta)
 │   └── loader.py        # descubre tools/*.py y tools/custom/*.py y llama register_tools(mcp)
 ├── tools/
 │   ├── obsidian.py      # list / read / append notas
@@ -23,6 +23,14 @@ mcp-server/
 ├── secrets.env.example  # copiar a secrets.env EN EL VPS (contraseña RCON); nunca se sube
 └── requirements.txt     # mcp fijado a <2 (mcp 2.x renombra FastMCP)
 ```
+
+## Datos de salud
+
+`personal_data.db` (Hevy, Garmin) la crea y la rellena el repo
+[vps-didac/ingesta](https://github.com/vps-didac/ingesta), que monta la misma carpeta
+`/data`. Aquí solo se lee: `query_personal_db` para consultas y `ingest_status` para
+saber cuándo fue la última sincronización y si falló. Si allí cambia una tabla, hay que
+actualizar la docstring de `query_personal_db` en `tools/health_db.py`.
 
 ## Contrato de un módulo
 

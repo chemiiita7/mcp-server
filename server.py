@@ -3,9 +3,11 @@ server.py — Punto de entrada GENÉRICO del MCP del Oracle VPS Lab.
 
 No contiene ninguna herramienta. Solo:
   1. Lee la configuración (core/config.py)
-  2. Inicializa la base de datos (core/db.py)
-  3. Descubre y registra los módulos de tools/ (core/loader.py)
-  4. Arranca el servidor HTTP
+  2. Descubre y registra los módulos de tools/ (core/loader.py)
+  3. Arranca el servidor HTTP
+
+La base de datos no se toca aquí: la crea y la rellena vps-didac/ingesta, y este
+servidor solo la lee (core/db.py).
 
 Para añadir o mejorar herramientas NO hace falta tocar este archivo:
 crea/edita un .py en tools/ con una función register_tools(mcp)
@@ -30,7 +32,6 @@ except ImportError:
     except ImportError:  # SDK oficial 2.x: FastMCP pasó a llamarse MCPServer
         from mcp.server.mcpserver import MCPServer as FastMCP
 
-from core import db
 from core.loader import load_tools
 
 logging.basicConfig(
@@ -60,7 +61,6 @@ def _nuevo_servidor() -> FastMCP:
 
 def build_server() -> FastMCP:
     mcp = _nuevo_servidor()
-    db.init_schema()
     report = load_tools(mcp, profile=settings.profile)
     log.info("Perfil '%s' | módulos cargados: %s", settings.profile, report["loaded"] or "-")
     if report["skipped"]:
