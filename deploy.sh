@@ -24,6 +24,14 @@
   git reset --hard origin/main          # nunca 'git clean': borraría secrets.env
   git --no-pager log --oneline -1
 
+  # Las carpetas que se montan por separado tienen que existir ANTES del "up": si no,
+  # Docker las crea como root dentro de la bóveda y Syncthing deja de poder escribir en
+  # ellas. Se crean con el uid de los contenedores (1000), que es el dueño de la bóveda.
+  VAULT=/home/ubuntu/apps/lab-ai/obsidian-vault
+  echo "==> Carpetas de la bóveda: 02_Daily/_sistema y 99_Private"
+  docker run --rm --user 1000:1000 --network none -v "$VAULT:/vault" python:3.11-slim \
+    mkdir -p /vault/02_Daily/_sistema /vault/99_Private
+
   echo "==> docker compose up -d --build"
   docker compose up -d --build
   docker compose ps
@@ -46,6 +54,26 @@
     exit 1
   fi
   echo "OK: el MCP responde (HTTP $code)."
+
+  echo "==> 99_Private tapado dentro del MCP"
+  tipo="$(docker compose exec -T mcp-lab-server stat -f -c %T /vault/99_Private || true)"
+  visibles="$(docker compose exec -T mcp-lab-server sh -c 'ls -A /vault/99_Private | wc -l' || echo '?')"
+  if [ "$tipo" != "tmpfs" ] || [ "$visibles" != "0" ]; then
+    echo "ERROR: /vault/99_Private no está tapado dentro del MCP (tipo=$tipo, archivos=$visibles)." >&2
+    echo "       Paro el contenedor para no exponer el diario privado." >&2
+    docker compose stop mcp-lab-server
+    exit 1
+  fi
+  echo "OK: el MCP ve 99_Private vacío (tmpfs)."
+
+  echo "==> Parte diario"
+  sleep 5
+  if [ "$(docker inspect -f '{{.State.Status}}' nota-diaria)" != "running" ]; then
+    echo "ERROR: el contenedor nota-diaria no está en marcha." >&2
+    docker compose logs --tail 30 nota-diaria
+    exit 1
+  fi
+  docker compose logs --tail 5 nota-diaria
 
   exit 0
 }

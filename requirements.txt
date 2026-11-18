@@ -6,3 +6,5 @@ mcp==1.30.0
 fastmcp==3.4.11
 pydantic==2.14.3
 uvicorn==0.54.0
+# zoneinfo (parte diario): la imagen slim no garantiza los datos de zonas horarias
+tzdata==2026.6

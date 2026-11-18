@@ -8,6 +8,7 @@ services:
     restart: unless-stopped
     environment:
       MCP_PROFILE: admin
+      TZ: Europe/Madrid            # qué es "hoy" para el parte diario
       # 0.0.0.0 con network_mode: host significa, en la práctica, localhost + tailnet:
       # el cortafuegos del VPS solo acepta lo que entra por tailscale0 (cadena ts-input),
       # el 22 y el 25565; el resto cae en el REJECT final. Si algún día se tocan esas
@@ -24,5 +25,34 @@ services:
     volumes:
       - ./:/app                                          # código en caliente
       - /home/ubuntu/apps/lab-ai/obsidian-vault:/vault
+      # 99_Private NO existe para el MCP: un tmpfs vacío tapa la carpeta real, así que
+      # ni las tools ni un comando que se ejecute aquí dentro pueden ver esos archivos.
+      # Lo vigila deploy.sh. El código lo veta además (MCP_VAULT_DENY, core/vault.py).
+      - type: tmpfs
+        target: /vault/99_Private
+        tmpfs:
+          size: 1048576
       - /home/ubuntu/apps/lab-ai/data:/data
       - /home/ubuntu/apps/minecraft:/minecraft
+
+  # Parte diario (sueño, recuperación y entrenos) en 02_Daily/_sistema. La de hoy aparece a
+  # las 9:00 y se reescribe cuando la ingesta trae datos nuevos (lo mira cada 2 min).
+  # Mismo código que el MCP (core/parte_diario.py), pero un proceso aparte con lo justo:
+  # sin red, sin puertos, la BD abierta en solo lectura y de la bóveda solo su carpeta.
+  nota-diaria:
+    build: .
+    container_name: nota-diaria
+    user: "1000:1000"
+    mem_limit: 96m
+    network_mode: none
+    restart: unless-stopped
+    command: ["python", "-m", "core.parte_diario", "loop"]
+    environment:
+      TZ: Europe/Madrid
+      MCP_DAILY_DIR: 02_Daily/_sistema
+      MCP_DAILY_DESDE: "09:00"
+      MCP_DAILY_INTERVAL_MIN: "2"
+    volumes:
+      - ./:/app:ro
+      - /home/ubuntu/apps/lab-ai/obsidian-vault/02_Daily/_sistema:/vault/02_Daily/_sistema
+      - /home/ubuntu/apps/lab-ai/data:/data

@@ -9,14 +9,18 @@ mcp-server/
 ├── core/
 │   ├── config.py        # variables MCP_* (puerto, rutas, perfil...)
 │   ├── db.py            # conexiones SQLite, solo lectura (el esquema es de vps-didac/ingesta)
+│   ├── vault.py         # rutas de la bóveda: nada fuera de ella y nada de 99_Private
+│   ├── parte_diario.py  # genera la nota diaria del sistema (también CLI y servicio)
 │   └── loader.py        # descubre tools/*.py y tools/custom/*.py y llama register_tools(mcp)
 ├── tools/
 │   ├── obsidian.py      # list / read / append notas
 │   ├── health_db.py     # query_personal_db
 │   ├── minecraft.py     # control del servidor de Minecraft (RCON + Docker)
+│   ├── parte_diario.py  # generar_parte_diario: forzar a mano la nota del sistema
 │   └── _plantilla.py    # ignorado (empieza por "_"): cópialo para crear un módulo nuevo
 ├── scripts/
-│   └── smoke_test.py    # CI: comprueba que todos los módulos cargan
+│   ├── smoke_test.py    # CI: comprueba que todos los módulos cargan
+│   └── test_parte_diario.py  # CI: parte diario y carpeta privada, sin red
 ├── permissions.json     # qué módulos ve cada perfil (admin = todo, agent = lista blanca)
 ├── Dockerfile
 ├── docker-compose.yml   # monta ./:/app → editar código = reiniciar, sin build
@@ -31,6 +35,34 @@ mcp-server/
 `/data`. Aquí solo se lee: `query_personal_db` para consultas y `ingest_status` para
 saber cuándo fue la última sincronización y si falló. Si allí cambia una tabla, hay que
 actualizar la docstring de `query_personal_db` en `tools/health_db.py`.
+
+## Parte diario
+
+El servicio `nota-diaria` (mismo código, contenedor aparte sin red y que solo monta
+`02_Daily/_sistema`) escribe `02_Daily/_sistema/YYYY-MM-DD.md`: sueño, HRV, FC en reposo y
+Body Battery frente a la media de 7 días, un semáforo con los guardarraíles (rojo: dos
+noches < 6 h o HRV bajando 3 días), y los entrenos, pasos y estrés de ese mismo día. La de
+hoy aparece a las 9:00 y se reescribe cada vez que la ingesta trae datos (franjas de 9,
+12, 17 y 22, reintentos del sueño y webhook de Hevy); la de ayer se sigue completando. Solo reescribe si cambia algo y nunca toca una nota sin `origen: sistema` en el
+frontmatter. Tu nota de diario (`02_Daily/YYYY-MM-DD.md`) es tuya y lo incrusta:
+
+```markdown
+![[02_Daily/_sistema/{{date:YYYY-MM-DD}}#Parte del día]]
+```
+
+## Carpeta privada (99_Private)
+
+Ninguna herramienta puede verla, en dos capas:
+
+1. **Docker**: un `tmpfs` vacío tapa `/vault/99_Private` dentro de `mcp-lab-server`, y
+   `nota-diaria` ni siquiera monta la bóveda entera. `deploy.sh` comprueba tras cada
+   despliegue que sigue tapada y, si no, para el MCP.
+2. **Código**: `core/vault.py` veta las carpetas de `MCP_VAULT_DENY` (por defecto
+   `99_Private`, sin distinguir mayúsculas, también por `..` o enlaces simbólicos): no se
+   listan, no se leen, no se escriben, y el error es el mismo que el de una ruta fuera de
+   la bóveda.
+
+Toda tool nueva que toque archivos de la bóveda tiene que usar `core.vault.safe_path`.
 
 ## Contrato de un módulo
 
