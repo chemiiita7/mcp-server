@@ -28,6 +28,9 @@ jobs:
       - name: Todos los módulos de tools/ cargan
         run: python scripts/smoke_test.py
 
+      - name: Parte diario y carpeta privada (sin red)
+        run: python scripts/test_parte_diario.py
+
       - name: La imagen construye y el servidor escucha
         run: |
           docker build -t mcp-lab-server:ci .
