@@ -89,9 +89,11 @@ En CI, en cambio, un módulo roto **hace fallar el build y no se despliega**.
 | Ver qué cargó | en el VPS: `docker compose logs --tail 20 mcp-lab-server` |
 
 Tras un despliegue, comprobar en Antigravity que el MCP sigue en verde con sus
-herramientas. El servidor escucha en `0.0.0.0:8000` (`MCP_HOST` en el
-`docker-compose.yml`), que con el cortafuegos del VPS significa localhost y tailnet:
-vale tanto el túnel de Cloudflare como `http://<IP-tailnet-del-VPS>:8000/mcp` directo.
+herramientas. En este fork (VPS de Contabo) el servidor escucha solo en
+`127.0.0.1:8000` (`MCP_HOST` en el `docker-compose.yml`), porque la IP del VPS es
+pública. Desde la tailnet se llega con `tailscale serve --bg 8000`, que lo publica en
+`https://<maquina>.<tailnet>.ts.net/mcp`; Beira y un túnel de Cloudflare usan
+`127.0.0.1:8000` directamente.
 
 ## Secretos
 

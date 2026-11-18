@@ -9,11 +9,11 @@ services:
     environment:
       MCP_PROFILE: admin
       TZ: Europe/Madrid            # qué es "hoy" para el parte diario
-      # 0.0.0.0 con network_mode: host significa, en la práctica, localhost + tailnet:
-      # el cortafuegos del VPS solo acepta lo que entra por tailscale0 (cadena ts-input),
-      # el 22 y el 25565; el resto cae en el REJECT final. Si algún día se tocan esas
-      # reglas, esto queda expuesto: el perfil admin no pide autenticación.
-      MCP_HOST: "0.0.0.0"
+      # Solo localhost. En Contabo la IP es pública y no hay cortafuegos del proveedor:
+      # con 0.0.0.0 el perfil admin (sin autenticación) dependería solo de ufw. Para
+      # usarlo desde tu tailnet, el VPS lo publica con  tailscale serve --bg 8000
+      # (https://<maquina>.<tailnet>.ts.net/mcp), y Beira llega por 127.0.0.1.
+      MCP_HOST: "127.0.0.1"
       MCP_PORT: "8000"
       MCP_TRANSPORT: streamable-http
       DOCKER_HOST: "tcp://127.9.9.1:2375"
