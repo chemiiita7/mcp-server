@@ -2,7 +2,9 @@ services:
   mcp-lab-server:
     build: .
     container_name: mcp-lab-server
-    user: "1000:1000"
+    # uid de hermes: dueño de la bóveda y quien corre Syncthing en este VPS. Así lo que
+    # escribe el MCP es de hermes y Syncthing lo sincroniza con el PC sin líos de permisos.
+    user: "1001:1001"
     mem_limit: 256m
     network_mode: host
     restart: unless-stopped
@@ -24,7 +26,7 @@ services:
       - secrets.env
     volumes:
       - ./:/app                                          # código en caliente
-      - /home/ubuntu/apps/lab-ai/obsidian-vault:/vault
+      - /home/hermes/vault:/vault                       # la que sincroniza Syncthing
       # 99_Private NO existe para el MCP: un tmpfs vacío tapa la carpeta real, así que
       # ni las tools ni un comando que se ejecute aquí dentro pueden ver esos archivos.
       # Lo vigila deploy.sh. El código lo veta además (MCP_VAULT_DENY, core/vault.py).
@@ -35,6 +37,9 @@ services:
       - /home/ubuntu/apps/lab-ai/data:/data
       - /home/ubuntu/apps/minecraft:/minecraft
 
+  # DESACTIVADO en este VPS (profiles): sin ingesta no hay datos de salud y escribiría cada
+  # día una nota vacía en la bóveda. Para activarlo, borra la línea "profiles" y despliega.
+  #
   # Parte diario (sueño, recuperación y entrenos) en 02_Daily/_sistema. La de hoy aparece a
   # las 9:00 y se reescribe cuando la ingesta trae datos nuevos (lo mira cada 2 min).
   # Mismo código que el MCP (core/parte_diario.py), pero un proceso aparte con lo justo:
@@ -42,7 +47,8 @@ services:
   nota-diaria:
     build: .
     container_name: nota-diaria
-    user: "1000:1000"
+    profiles: ["parte-diario"]
+    user: "1001:1001"
     mem_limit: 96m
     network_mode: none
     restart: unless-stopped
@@ -54,5 +60,5 @@ services:
       MCP_DAILY_INTERVAL_MIN: "2"
     volumes:
       - ./:/app:ro
-      - /home/ubuntu/apps/lab-ai/obsidian-vault/02_Daily/_sistema:/vault/02_Daily/_sistema
+      - /home/hermes/vault/02_Daily/_sistema:/vault/02_Daily/_sistema
       - /home/ubuntu/apps/lab-ai/data:/data

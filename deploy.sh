@@ -26,11 +26,23 @@
 
   # Las carpetas que se montan por separado tienen que existir ANTES del "up": si no,
   # Docker las crea como root dentro de la bóveda y Syncthing deja de poder escribir en
-  # ellas. Se crean con el uid de los contenedores (1000), que es el dueño de la bóveda.
-  VAULT=/home/ubuntu/apps/lab-ai/obsidian-vault
-  echo "==> Carpetas de la bóveda: 02_Daily/_sistema y 99_Private"
-  docker run --rm --user 1000:1000 --network none -v "$VAULT:/vault" python:3.11-slim \
-    mkdir -p /vault/02_Daily/_sistema /vault/99_Private
+  # ellas. Se crean con el uid de los contenedores (1001 = hermes), el dueño de la bóveda.
+  VAULT=/home/hermes/vault
+  UIDGID=1001:1001
+  carpetas=(/vault/99_Private)
+  # El parte diario solo cuenta si su servicio está activo (ver "profiles" en el compose)
+  parte_diario=0
+  if docker compose config --services | grep -qx nota-diaria; then
+    parte_diario=1
+    carpetas+=(/vault/02_Daily/_sistema)
+  fi
+  echo "==> Carpetas de la bóveda: ${carpetas[*]}"
+  docker run --rm --user "$UIDGID" --network none -v "$VAULT:/vault" python:3.11-slim \
+    mkdir -p "${carpetas[@]}"
+
+  # Datos (personal_data.db) y Minecraft: montajes del MCP que también tienen que ser suyos
+  docker run --rm --network none -v /home/ubuntu/apps:/apps python:3.11-slim \
+    sh -c "mkdir -p /apps/lab-ai/data /apps/minecraft && chown $UIDGID /apps/lab-ai/data /apps/minecraft"
 
   echo "==> docker compose up -d --build"
   docker compose up -d --build
@@ -67,13 +79,17 @@
   echo "OK: el MCP ve 99_Private vacío (tmpfs)."
 
   echo "==> Parte diario"
-  sleep 5
-  if [ "$(docker inspect -f '{{.State.Status}}' nota-diaria)" != "running" ]; then
-    echo "ERROR: el contenedor nota-diaria no está en marcha." >&2
-    docker compose logs --tail 30 nota-diaria
-    exit 1
+  if [ "$parte_diario" = 1 ]; then
+    sleep 5
+    if [ "$(docker inspect -f '{{.State.Status}}' nota-diaria)" != "running" ]; then
+      echo "ERROR: el contenedor nota-diaria no está en marcha." >&2
+      docker compose logs --tail 30 nota-diaria
+      exit 1
+    fi
+    docker compose logs --tail 5 nota-diaria
+  else
+    echo "Desactivado (profiles en docker-compose.yml)."
   fi
-  docker compose logs --tail 5 nota-diaria
 
   exit 0
 }
